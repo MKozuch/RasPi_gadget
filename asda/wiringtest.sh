@@ -27,7 +27,7 @@ fi
 if [ $p15 -eq 0 ]; then
   write_report "\0\0\x27\0\0\0\0\0"
   write_report "\0\0\0\0\0\0\0\0"
-  #echo -e 0x5
+  echo p15
 fi
 
   sleep 0.01

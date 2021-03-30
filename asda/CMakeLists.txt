@@ -1,0 +1,7 @@
+cmake_minimum_required (VERSION 3.16.3)
+project(HELLO)
+add_executable(Hello asda.c)
+add_compile_options(-Wall -Wextra -pedantic)
+set_property(TARGET Hello PROPERTY CMAKE_C_STANDARD 17)
+find_library(wiringPi_LIB wiringPi)
+target_link_libraries(Hello ${wiringPi_LIB})
