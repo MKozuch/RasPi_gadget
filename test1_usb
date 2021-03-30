@@ -1,0 +1,77 @@
+#!/bin/bash -e
+
+modprobe libcomposite
+
+cd /sys/kernel/config/usb_gadget/
+mkdir -p test1
+cd test1
+
+echo 0x1d6b > idVendor
+echo 0x0104 > idProduct
+echo 0x0100 > bcdDevice
+echo 0x0200 > bcdUSB
+
+#configure as composite device
+echo 0xEF > bDeviceClass
+echo 0x02 > bDeviceSubClass
+echo 0x01 > bDeviceProtocol
+
+mkdir -p strings/0x409
+echo asdf_xD > strings/0x409/serialnumber
+echo Michal  > strings/0x409/manufacturer
+echo Lulz    > strings/0x409/product
+
+mkdir -p configs/c.1/
+echo 500 >configs/c.1/MaxPower
+
+mkdir -p configs/c.1/strings/0x409/
+echo "Config 1" > configs/c.1/strings/0x409/configuration
+
+#windows extensions
+echo 1       > os_desc/use
+echo 0xcd    > os_desc/b_vendor_code
+echo MSFT100 > os_desc/qw_sign
+ln -s configs/c.1 os_desc
+
+
+#ethernet
+mkdir -p functions/rndis.usb0
+echo RNDIS   > functions/rndis.usb0/os_desc/interface.rndis/compatible_id
+echo 5162001 > functions/rndis.usb0/os_desc/interface.rndis/sub_compatible_id
+echo "48:6f:73:74:50:43" > functions/rndis.usb0/host_addr
+echo "48:6f:73:74:50:42" > functions/rndis.usb0/dev_addr
+ln -s functions/rndis.usb0 configs/c.1
+
+
+ #remove g_ether gadget and install this
+lsmod | grep -q "g_ether" && rmmod g_ether
+
+
+# show yourself to host as rndis, then detach and load rest of funcitons and show again with 0 deviceClass  
+# see https://gist.github.com/Gadgetoid/c52ee2e04f1cd1c0854c3e77360011e2
+ls /sys/class/udc > UDC
+sleep 5
+echo "" > UDC
+echo "0x00" > bDeviceClass
+
+#setup functions
+
+#ecm
+mkdir -p functions/ecm.usb0
+ln -s functions/ecm.usb0 configs/c.1/
+
+#serial
+mkdir -p functions/acm.usb0
+ln -s functions/acm.usb0 configs/c.1/
+
+# hid
+mkdir -p functions/hid.usb0
+echo 1 > functions/hid.usb0/protocol
+echo 1 > functions/hid.usb0/subclass
+echo 8 > functions/hid.usb0/report_length
+echo -ne \\x05\\x01\\x09\\x06\\xa1\\x01\\x05\\x07\\x19\\xe0\\x29\\xe7\\x15\\x00\\x25\\x01\\x75\\x01\\x95\\x08\\x81\\x02\\x95\\x01\\x75\\x08\\x81\\x03\\x95\\x05\\x75\\x01\\x05\\x08\\x19\\x01\\x29\\x05\\x91\\x02\\x95\\x01\\x75\\x03\\x91\\x03\\x95\\x06\\x75\\x08\\x15\\x00\\x25\\x65\\x05\\x07\\x19\\x00\\x29\\x65\\x81\\x00\\xc0 > functions/hid.usb0/report_desc
+ln -s functions/hid.usb0 configs/c.1
+
+#mass storage TODO
+
+ls /sys/class/udc > UDC
